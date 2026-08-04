@@ -1,0 +1,199 @@
+:root {
+  --bg: #F7F7F4;
+  --card: #FFFFFF;
+  --border: #E5E3DD;
+  --text: #1F2933;
+  --text-muted: #6B7280;
+  --accent: #0E6B65;
+  --accent-soft: #DCEFEE;
+  --danger: #B3261E;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+h1, h2 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  margin: 0;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- Marca ---------- */
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border-radius: 4px;
+  display: inline-block;
+}
+.brand h1 { font-size: 1.25rem; }
+
+/* ---------- Login ---------- */
+.login-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 100%;
+  max-width: 380px;
+}
+.login-card .subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 12px 0 24px;
+}
+.login-card form { display: flex; flex-direction: column; gap: 6px; }
+.login-card label { font-size: 0.85rem; font-weight: 500; margin-top: 10px; }
+.login-card input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+.login-card button {
+  margin-top: 20px;
+  padding: 11px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.login-card button:hover { opacity: 0.92; }
+.error-msg { color: var(--danger); font-size: 0.85rem; min-height: 1.2em; margin-top: 8px; }
+
+/* ---------- Topbar ---------- */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.btn-secondary, .btn-ghost {
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-secondary {
+  background: var(--text);
+  color: white;
+  border: none;
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* ---------- Layout painel ---------- */
+.painel {
+  max-width: 900px;
+  margin: 28px auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.card h2 { font-size: 1.05rem; margin-bottom: 14px; }
+
+/* ---------- Formulário ---------- */
+.form-card form { display: flex; flex-direction: column; gap: 4px; }
+.form-card label { font-size: 0.85rem; font-weight: 500; margin-top: 10px; }
+.form-card select, .form-card input {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  width: 100%;
+}
+.row { display: flex; gap: 14px; }
+.row > div { flex: 1; }
+.form-actions { align-items: center; margin-top: 16px; }
+.form-actions button { padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; }
+#btn-salvar { background: var(--accent); color: white; border: none; }
+#btn-salvar:hover { opacity: 0.92; }
+
+/* ---------- Legenda ---------- */
+.legend { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.85rem; color: var(--text-muted); }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; background: var(--accent-soft); border: 1px solid var(--accent); }
+
+/* ---------- Calendário (FullCalendar overrides) ---------- */
+.fc { font-family: 'Inter', sans-serif; }
+.fc .dia-ferias { background: var(--accent-soft) !important; }
+.fc-daygrid-day-number { color: var(--text); }
+.fc-toolbar-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem !important; }
+.fc-button {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+}
+.fc-button:hover { background: var(--accent-soft) !important; }
+.fc-button-active { background: var(--accent) !important; color: white !important; }
+
+/* ---------- Lista de períodos ---------- */
+.periodo-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.periodo-linha:last-child { border-bottom: none; }
+.periodo-datas { display: block; font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+.periodo-acoes { display: flex; gap: 14px; }
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.btn-danger { color: var(--danger); }
+.vazio { color: var(--text-muted); font-size: 0.9rem; }
+
+@media (max-width: 600px) {
+  .row { flex-direction: column; }
+  .topbar { flex-direction: column; gap: 10px; align-items: flex-start; }
+}

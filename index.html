@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Férias — Entrar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body class="login-body">
+  <main class="login-card">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <h1>Férias</h1>
+    </div>
+    <p class="subtitle">Entre com seu e-mail e senha para acessar o calendário.</p>
+
+    <form id="login-form">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" required autocomplete="username" />
+
+      <label for="password">Senha</label>
+      <input type="password" id="password" required autocomplete="current-password" />
+
+      <button type="submit">Entrar</button>
+      <p id="error-msg" class="error-msg"></p>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabaseClient.js"></script>
+  <script src="assets/login.js"></script>
+</body>
+</html>

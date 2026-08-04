@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Férias — Painel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <h1>Férias</h1>
+    </div>
+    <div class="topbar-right">
+      <span id="papel-badge" class="badge"></span>
+      <button id="btn-backup" class="btn-secondary">Baixar backup (.txt)</button>
+      <button id="btn-logout" class="btn-ghost">Sair</button>
+    </div>
+  </header>
+
+  <main class="painel">
+    <!-- Formulário do gestor -->
+    <section id="form-gestor" class="card form-card hidden">
+      <h2 id="form-title">Agendar férias</h2>
+      <form id="ferias-form">
+        <label for="select-funcionario">Funcionário</label>
+        <select id="select-funcionario" required></select>
+
+        <div class="row">
+          <div>
+            <label for="data-inicio">Data inicial</label>
+            <input type="date" id="data-inicio" required />
+          </div>
+          <div>
+            <label for="data-fim">Data final</label>
+            <input type="date" id="data-fim" required />
+          </div>
+        </div>
+
+        <div class="row form-actions">
+          <button type="submit" id="btn-salvar">Agendar</button>
+          <button type="button" id="btn-cancelar-edicao" class="btn-ghost hidden">Cancelar edição</button>
+        </div>
+        <p id="form-msg" class="error-msg"></p>
+      </form>
+    </section>
+
+    <!-- Calendário -->
+    <section class="card">
+      <div class="legend">
+        <span class="legend-dot"></span>
+        <span id="legend-text">Dia com férias marcadas</span>
+      </div>
+      <div id="calendar"></div>
+    </section>
+
+    <!-- Lista de períodos (só gestor) -->
+    <section id="lista-gestor" class="card hidden">
+      <h2>Períodos agendados</h2>
+      <div id="lista-periodos"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="assets/supabaseClient.js"></script>
+  <script src="assets/painel.js"></script>
+</body>
+</html>

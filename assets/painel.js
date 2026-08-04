@@ -40,9 +40,11 @@ function montarInterfacePorPapel() {
     badge.textContent = "Gestor";
     el("form-gestor").classList.remove("hidden");
     el("lista-gestor").classList.remove("hidden");
+    el("btn-backup").classList.remove("hidden");
     el("legend-text").textContent = "Passe o mouse para ver quem está de férias";
   } else {
     badge.textContent = "Visualização";
+    el("btn-backup").classList.add("hidden");
     el("legend-text").textContent = "Passe o mouse para ver quantas pessoas estão de férias";
   }
 }
@@ -131,7 +133,7 @@ function renderizarCalendario(mapaDias) {
       if (nomes.length === 0) return;
 
       if (papelUsuario === "gestor") {
-        info.el.title = nomes.join(", ");
+        info.el.title = `${nomes.join(", ")} (${nomes.length})`;
       } else {
         info.el.title = `${nomes.length} pessoa(s) de férias`;
       }

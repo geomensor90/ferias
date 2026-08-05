@@ -242,10 +242,7 @@ function renderizarGantt() {
     return;
   }
 
-  ganttInstance = new Gantt("#gantt", tarefas, {
-    view_mode: "Week",
-    language: "pt",
-  });
+  ganttInstance = new Gantt("#gantt", tarefas);
 }
 
 // Agrupa dias consecutivos com a mesma contagem de pessoas em "segmentos"

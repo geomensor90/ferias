@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css" rel="stylesheet" />
   <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -23,6 +24,16 @@
   </header>
 
   <main class="painel">
+
+    <!-- Seletor de equipe -->
+    <section class="card equipe-card">
+      <span class="equipe-label">Equipe</span>
+      <div class="switch-equipe" id="switch-equipe">
+        <button type="button" class="switch-option" data-equipe="AHAB">AHAB</button>
+        <button type="button" class="switch-option" data-equipe="ACESS">ACESS</button>
+      </div>
+    </section>
+
     <!-- Formulário do gestor -->
     <section id="form-gestor" class="card form-card hidden">
       <h2 id="form-title">Agendar férias</h2>
@@ -49,14 +60,25 @@
       </form>
     </section>
 
-    <!-- Calendário -->
+    <!-- Calendário / Gantt -->
     <section class="card">
-      <div class="legend">
-        <span class="legend-dot"></span>
-        <span id="legend-text">Dia com férias marcadas</span>
+      <div class="card-header-row">
+        <div class="legend">
+          <span class="legend-dot"></span>
+          <span id="legend-text">Dia com férias marcadas</span>
+        </div>
+        <div class="switch-visao" id="switch-visao">
+          <button type="button" class="switch-option" data-visao="calendario">📅 Calendário</button>
+          <button type="button" class="switch-option" data-visao="gantt">📊 Gráfico Gantt</button>
+        </div>
       </div>
-      <p style="background:#FDECEA; color:#B3261E; border:1px solid #B3261E; padding:10px 14px; border-radius:8px; font-weight:600; margin-bottom:14px;">⚠️ Atenção, permitido apenas 5 auditores de férias ao mesmo tempo</p>
+
+      <p class="aviso-limite">⚠️ Atenção, permitido apenas 5 auditores de férias ao mesmo tempo</p>
+
       <div id="calendar"></div>
+      <div id="gantt-wrap" class="hidden">
+        <svg id="gantt"></svg>
+      </div>
     </section>
 
     <!-- Lista de períodos (só gestor) -->
@@ -64,10 +86,27 @@
       <h2>Períodos agendados</h2>
       <div id="lista-periodos"></div>
     </section>
+
+    <!-- Visão geral com filtros -->
+    <section class="card">
+      <h2>Visão geral</h2>
+      <div class="filtros-geral">
+        <div>
+          <label for="filtro-mes">Mês</label>
+          <select id="filtro-mes"></select>
+        </div>
+        <div id="filtro-auditor-wrap" class="hidden">
+          <label for="filtro-auditor">Auditor</label>
+          <select id="filtro-auditor"></select>
+        </div>
+      </div>
+      <div id="visao-geral-lista"></div>
+    </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
   <script src="assets/supabaseClient.js"></script>
   <script src="assets/painel.js"></script>
 </body>

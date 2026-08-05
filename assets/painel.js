@@ -1,9 +1,17 @@
-let papelUsuario = null; // 'gestor' ou 'funcionario'
+let papelUsuario = null;      // 'gestor' ou 'funcionario'
+let equipeAtual = localStorage.getItem("equipeAtual") || "AHAB";
+let visaoAtual = "calendario"; // 'calendario' ou 'gantt'
 let calendar = null;
-let editandoId = null; // se estiver editando um período, guarda o id aqui
-let feriasCache = [];  // guarda a última lista de férias carregada (para o backup)
+let ganttInstance = null;
+let editandoId = null;
+let feriasCache = [];       // todas as férias, das duas equipes
+let funcionariosCache = []; // todos os funcionários, das duas equipes
 
 const el = (id) => document.getElementById(id);
+
+function nomeCompleto(f) {
+  return f.segundo_nome ? `${f.primeiro_nome} ${f.segundo_nome}` : f.primeiro_nome;
+}
 
 // ---------- Inicialização ----------
 (async function iniciar() {
@@ -30,8 +38,9 @@ const el = (id) => document.getElementById(id);
 
   papelUsuario = perfil.papel;
   montarInterfacePorPapel();
-  await carregarFuncionarios();
-  await carregarEColorirCalendario();
+  montarSwitchEquipe();
+  montarSwitchVisao();
+  await carregarTudo();
 })();
 
 function montarInterfacePorPapel() {
@@ -41,62 +50,122 @@ function montarInterfacePorPapel() {
     el("form-gestor").classList.remove("hidden");
     el("lista-gestor").classList.remove("hidden");
     el("btn-backup").classList.remove("hidden");
+    el("filtro-auditor-wrap").classList.remove("hidden");
     el("legend-text").textContent = "Passe o mouse para ver quem está de férias";
   } else {
     badge.textContent = "Visualização";
     el("btn-backup").classList.add("hidden");
+    el("filtro-auditor-wrap").classList.add("hidden");
     el("legend-text").textContent = "Passe o mouse para ver quantas pessoas estão de férias";
   }
 }
 
-// ---------- Funcionários (para o <select>) ----------
-async function carregarFuncionarios() {
-  if (papelUsuario !== "gestor") return;
+// ---------- Seletor de equipe ----------
+function montarSwitchEquipe() {
+  const botoes = document.querySelectorAll("#switch-equipe .switch-option");
+  atualizarBotoesEquipe();
+  botoes.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      equipeAtual = btn.dataset.equipe;
+      localStorage.setItem("equipeAtual", equipeAtual);
+      atualizarBotoesEquipe();
+      cancelarEdicao();
+      await recarregarTudoVisual();
+    });
+  });
+}
 
-  const { data, error } = await supabaseClient
+function atualizarBotoesEquipe() {
+  document.querySelectorAll("#switch-equipe .switch-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.equipe === equipeAtual);
+  });
+}
+
+// ---------- Seletor de visão (calendário / gantt) ----------
+function montarSwitchVisao() {
+  const botoes = document.querySelectorAll("#switch-visao .switch-option");
+  atualizarBotoesVisao();
+  botoes.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      visaoAtual = btn.dataset.visao;
+      atualizarBotoesVisao();
+      alternarVisao();
+    });
+  });
+}
+
+function atualizarBotoesVisao() {
+  document.querySelectorAll("#switch-visao .switch-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.visao === visaoAtual);
+  });
+}
+
+function alternarVisao() {
+  if (visaoAtual === "calendario") {
+    el("calendar").classList.remove("hidden");
+    el("gantt-wrap").classList.add("hidden");
+  } else {
+    el("calendar").classList.add("hidden");
+    el("gantt-wrap").classList.remove("hidden");
+    renderizarGantt();
+  }
+}
+
+// ---------- Carregar dados ----------
+async function carregarTudo() {
+  const { data: funcionarios, error: erroFunc } = await supabaseClient
     .from("funcionarios")
-    .select("id, primeiro_nome, segundo_nome")
+    .select("id, primeiro_nome, segundo_nome, equipe")
     .order("primeiro_nome");
 
-  if (error) return;
+  if (!erroFunc) funcionariosCache = funcionarios;
 
+  const { data: ferias, error: erroFerias } = await supabaseClient
+    .from("ferias")
+    .select("id, data_inicio, data_fim, funcionarios (id, primeiro_nome, segundo_nome, equipe)")
+    .order("data_inicio");
+
+  if (!erroFerias) feriasCache = ferias;
+
+  await recarregarTudoVisual();
+}
+
+async function recarregarTudoVisual() {
+  carregarFuncionariosNoSelect();
+  const mapaDias = construirMapaDeDias(feriasFiltradas());
+  renderizarCalendario(mapaDias);
+  if (visaoAtual === "gantt") renderizarGantt();
+  if (papelUsuario === "gestor") renderizarListaPeriodos(feriasFiltradas());
+  montarFiltrosVisaoGeral();
+  renderizarVisaoGeral();
+}
+
+function feriasFiltradas() {
+  return feriasCache.filter((f) => f.funcionarios && f.funcionarios.equipe === equipeAtual);
+}
+
+function funcionariosFiltrados() {
+  return funcionariosCache.filter((f) => f.equipe === equipeAtual);
+}
+
+// ---------- Select de funcionário (form do gestor) ----------
+function carregarFuncionariosNoSelect() {
+  if (papelUsuario !== "gestor") return;
   const select = el("select-funcionario");
   select.innerHTML = "";
-  data.forEach((f) => {
+  funcionariosFiltrados().forEach((f) => {
     const opt = document.createElement("option");
     opt.value = f.id;
-    opt.textContent = `${f.primeiro_nome} ${f.segundo_nome}`;
+    opt.textContent = nomeCompleto(f);
     select.appendChild(opt);
   });
 }
 
-// ---------- Carregar férias + montar calendário ----------
-async function carregarEColorirCalendario() {
-  const { data, error } = await supabaseClient
-    .from("ferias")
-    .select("id, data_inicio, data_fim, funcionarios (id, primeiro_nome, segundo_nome)")
-    .order("data_inicio");
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  feriasCache = data;
-
-  const mapaDias = construirMapaDeDias(data);
-  renderizarCalendario(mapaDias);
-
-  if (papelUsuario === "gestor") {
-    renderizarListaPeriodos(data);
-  }
-}
-
-// Transforma os períodos em um mapa { "2026-08-10": ["Ana Silva", "João Souza"] }
+// ---------- Mapa de dias { "2026-08-10": ["Ana Silva", ...] } ----------
 function construirMapaDeDias(listaFerias) {
   const mapa = {};
   listaFerias.forEach((f) => {
-    const nome = `${f.funcionarios.primeiro_nome} ${f.funcionarios.segundo_nome}`;
+    const nome = nomeCompleto(f.funcionarios);
     let cursor = new Date(f.data_inicio + "T00:00:00");
     const fim = new Date(f.data_fim + "T00:00:00");
     while (cursor <= fim) {
@@ -109,6 +178,7 @@ function construirMapaDeDias(listaFerias) {
   return mapa;
 }
 
+// ---------- Calendário ----------
 function renderizarCalendario(mapaDias) {
   const eventos = Object.keys(mapaDias).map((data) => ({
     start: data,
@@ -118,10 +188,7 @@ function renderizarCalendario(mapaDias) {
   }));
 
   const containerEl = el("calendar");
-
-  if (calendar) {
-    calendar.destroy();
-  }
+  if (calendar) calendar.destroy();
 
   calendar = new FullCalendar.Calendar(containerEl, {
     locale: "pt-br",
@@ -131,7 +198,6 @@ function renderizarCalendario(mapaDias) {
     eventDidMount: function (info) {
       const nomes = info.event.extendedProps.nomes || [];
       if (nomes.length === 0) return;
-
       if (papelUsuario === "gestor") {
         info.el.title = `${nomes.join(", ")} (${nomes.length})`;
       } else {
@@ -143,18 +209,82 @@ function renderizarCalendario(mapaDias) {
   calendar.render();
 }
 
+// ---------- Gráfico Gantt ----------
+function renderizarGantt() {
+  const wrap = el("gantt-wrap");
+  wrap.innerHTML = '<svg id="gantt"></svg>';
+
+  let tarefas = [];
+
+  if (papelUsuario === "gestor") {
+    // Uma barra por período, com o nome do auditor
+    tarefas = feriasFiltradas().map((f) => ({
+      id: String(f.id),
+      name: nomeCompleto(f.funcionarios),
+      start: f.data_inicio,
+      end: f.data_fim,
+      progress: 100,
+    }));
+  } else {
+    // Sem nomes: agrupa dias consecutivos com a mesma quantidade de pessoas
+    const mapaDias = construirMapaDeDias(feriasFiltradas());
+    tarefas = construirSegmentosDeOcupacao(mapaDias).map((seg, i) => ({
+      id: `seg-${i}`,
+      name: `${seg.count} pessoa(s) de férias`,
+      start: seg.start,
+      end: seg.end,
+      progress: 100,
+    }));
+  }
+
+  if (tarefas.length === 0) {
+    wrap.innerHTML = "<p class='vazio'>Nenhum período para exibir nesta equipe.</p>";
+    return;
+  }
+
+  ganttInstance = new Gantt("#gantt", tarefas, {
+    view_mode: "Week",
+    language: "pt",
+  });
+}
+
+// Agrupa dias consecutivos com a mesma contagem de pessoas em "segmentos"
+function construirSegmentosDeOcupacao(mapaDias) {
+  const datas = Object.keys(mapaDias).sort();
+  const segmentos = [];
+  let atual = null;
+
+  datas.forEach((data) => {
+    const count = mapaDias[data].length;
+    if (atual && atual.count === count && proximoDia(atual.end) === data) {
+      atual.end = data;
+    } else {
+      if (atual) segmentos.push(atual);
+      atual = { start: data, end: data, count };
+    }
+  });
+  if (atual) segmentos.push(atual);
+  return segmentos;
+}
+
+function proximoDia(dataIso) {
+  const d = new Date(dataIso + "T00:00:00");
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 // ---------- Lista de períodos (gestor) ----------
 function renderizarListaPeriodos(listaFerias) {
   const container = el("lista-periodos");
   container.innerHTML = "";
 
   if (listaFerias.length === 0) {
-    container.innerHTML = "<p class='vazio'>Nenhum período agendado ainda.</p>";
+    container.innerHTML = "<p class='vazio'>Nenhum período agendado ainda nesta equipe.</p>";
     return;
   }
 
   listaFerias.forEach((f) => {
-    const nome = `${f.funcionarios.primeiro_nome} ${f.funcionarios.segundo_nome}`;
+    const nome = nomeCompleto(f.funcionarios);
     const linha = document.createElement("div");
     linha.className = "periodo-linha";
     linha.innerHTML = `
@@ -217,7 +347,7 @@ if (el("ferias-form")) {
     }
 
     cancelarEdicao();
-    await carregarEColorirCalendario();
+    await carregarTudo();
     tentarBackupAutomatico();
   });
 }
@@ -240,10 +370,10 @@ el("btn-cancelar-edicao")?.addEventListener("click", cancelarEdicao);
 
 function cancelarEdicao() {
   editandoId = null;
-  el("ferias-form").reset();
-  el("form-title").textContent = "Agendar férias";
-  el("btn-salvar").textContent = "Agendar";
-  el("btn-cancelar-edicao").classList.add("hidden");
+  if (el("ferias-form")) el("ferias-form").reset();
+  if (el("form-title")) el("form-title").textContent = "Agendar férias";
+  if (el("btn-salvar")) el("btn-salvar").textContent = "Agendar";
+  if (el("btn-cancelar-edicao")) el("btn-cancelar-edicao").classList.add("hidden");
 }
 
 async function excluirPeriodo(id) {
@@ -255,17 +385,133 @@ async function excluirPeriodo(id) {
     alert("Erro ao excluir: " + error.message);
     return;
   }
-  await carregarEColorirCalendario();
+  await carregarTudo();
   tentarBackupAutomatico();
+}
+
+// ---------- Visão geral com filtros ----------
+function montarFiltrosVisaoGeral() {
+  // Filtro de mês, baseado nos períodos existentes da equipe atual
+  const selectMes = el("filtro-mes");
+  const mesSelecionado = selectMes.value || "todos";
+  const meses = new Set();
+  feriasFiltradas().forEach((f) => {
+    meses.add(f.data_inicio.slice(0, 7));
+    meses.add(f.data_fim.slice(0, 7));
+  });
+  const mesesOrdenados = Array.from(meses).sort();
+
+  selectMes.innerHTML = '<option value="todos">Todos os meses</option>';
+  mesesOrdenados.forEach((m) => {
+    const [ano, mes] = m.split("-");
+    const nomeMes = new Date(`${m}-01T00:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = nomeMes;
+    selectMes.appendChild(opt);
+  });
+  selectMes.value = mesesOrdenados.includes(mesSelecionado) ? mesSelecionado : "todos";
+  selectMes.onchange = renderizarVisaoGeral;
+
+  // Filtro de auditor (só gestor)
+  if (papelUsuario === "gestor") {
+    const selectAuditor = el("filtro-auditor");
+    const auditorSelecionado = selectAuditor.value || "todos";
+    selectAuditor.innerHTML = '<option value="todos">Todos os auditores</option>';
+    funcionariosFiltrados().forEach((f) => {
+      const opt = document.createElement("option");
+      opt.value = f.id;
+      opt.textContent = nomeCompleto(f);
+      selectAuditor.appendChild(opt);
+    });
+    selectAuditor.value = auditorSelecionado;
+    selectAuditor.onchange = renderizarVisaoGeral;
+  }
+}
+
+function renderizarVisaoGeral() {
+  const container = el("visao-geral-lista");
+  const mesFiltro = el("filtro-mes").value;
+  const auditorFiltro = papelUsuario === "gestor" ? el("filtro-auditor").value : "todos";
+
+  let lista = feriasFiltradas();
+
+  if (auditorFiltro !== "todos") {
+    lista = lista.filter((f) => String(f.funcionarios.id) === String(auditorFiltro));
+  }
+  if (mesFiltro !== "todos") {
+    lista = lista.filter((f) => f.data_inicio.slice(0, 7) <= mesFiltro && f.data_fim.slice(0, 7) >= mesFiltro);
+  }
+
+  if (papelUsuario === "gestor") {
+    if (lista.length === 0) {
+      container.innerHTML = "<p class='vazio'>Nenhum período encontrado com esses filtros.</p>";
+      return;
+    }
+    const linhas = lista
+      .slice()
+      .sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))
+      .map((f) => `
+        <tr>
+          <td>${nomeCompleto(f.funcionarios)}</td>
+          <td>${formatarData(f.data_inicio)}</td>
+          <td>${formatarData(f.data_fim)}</td>
+        </tr>
+      `).join("");
+    container.innerHTML = `
+      <table class="tabela-geral">
+        <thead><tr><th>Auditor</th><th>Início</th><th>Fim</th></tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+    `;
+  } else {
+    // Funcionário: mostra dias com contagem, sem nomes
+    const mapaDias = construirMapaDeDias(lista);
+    const dias = Object.keys(mapaDias).sort();
+    if (dias.length === 0) {
+      container.innerHTML = "<p class='vazio'>Nenhum dia com férias encontrado com esses filtros.</p>";
+      return;
+    }
+    const linhas = dias.map((d) => `
+      <tr>
+        <td>${formatarData(d)}</td>
+        <td>${mapaDias[d].length} pessoa(s)</td>
+      </tr>
+    `).join("");
+    container.innerHTML = `
+      <table class="tabela-geral">
+        <thead><tr><th>Data</th><th>Pessoas de férias</th></tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+    `;
+  }
 }
 
 // ---------- Backup ----------
 function gerarTextoBackup() {
-  const linhas = ["BACKUP DE FÉRIAS", `Gerado em: ${new Date().toLocaleString("pt-BR")}`, ""];
-  feriasCache.forEach((f) => {
-    const nome = `${f.funcionarios.primeiro_nome} ${f.funcionarios.segundo_nome}`;
-    linhas.push(`${nome} | ${formatarData(f.data_inicio)} a ${formatarData(f.data_fim)}`);
+  const linhas = [
+    "BACKUP DE FÉRIAS",
+    `Equipe: ${equipeAtual}`,
+    `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
+    "",
+  ];
+
+  const porAuditor = {};
+  feriasFiltradas().forEach((f) => {
+    const nome = nomeCompleto(f.funcionarios);
+    if (!porAuditor[nome]) porAuditor[nome] = [];
+    porAuditor[nome].push(f);
   });
+
+  Object.keys(porAuditor).sort().forEach((nome) => {
+    linhas.push(`${nome}:`);
+    porAuditor[nome]
+      .slice()
+      .sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))
+      .forEach((f) => linhas.push(`   ${formatarData(f.data_inicio)} a ${formatarData(f.data_fim)}`));
+    linhas.push("");
+  });
+
   return linhas.join("\n");
 }
 
@@ -275,17 +521,15 @@ el("btn-backup").addEventListener("click", () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `backup-ferias-${new Date().toISOString().slice(0, 10)}.txt`;
+  a.download = `backup-ferias-${equipeAtual}-${new Date().toISOString().slice(0, 10)}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 });
 
-// Backup automático: salva uma cópia no Supabase Storage após cada alteração.
-// Se o bucket "backups" não existir ainda, apenas ignora silenciosamente.
 async function tentarBackupAutomatico() {
   try {
     const texto = gerarTextoBackup();
-    const nomeArquivo = `backup-${Date.now()}.txt`;
+    const nomeArquivo = `backup-${equipeAtual}-${Date.now()}.txt`;
     await supabaseClient.storage.from("backups").upload(nomeArquivo, texto, {
       contentType: "text/plain;charset=utf-8",
     });

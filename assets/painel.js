@@ -462,26 +462,27 @@ function renderizarVisaoGeral() {
       </table>
     `;
   } else {
-    // Funcionário: mostra dias com contagem, sem nomes
+    // Funcionário: agrupa dias consecutivos com a mesma contagem, sem nomes
     const mapaDias = construirMapaDeDias(lista);
-    const dias = Object.keys(mapaDias).sort();
-    if (dias.length === 0) {
-      container.innerHTML = "<p class='vazio'>Nenhum dia com férias encontrado com esses filtros.</p>";
+    const segmentos = construirSegmentosDeOcupacao(mapaDias);
+    if (segmentos.length === 0) {
+      container.innerHTML = "<p class='vazio'>Nenhum período com férias encontrado com esses filtros.</p>";
       return;
     }
-    const linhas = dias.map((d) => `
+    const linhas = segmentos.map((s) => `
       <tr>
-        <td>${formatarData(d)}</td>
-        <td>${mapaDias[d].length} pessoa(s)</td>
+        <td>${formatarData(s.start)} — ${formatarData(s.end)}</td>
+        <td>${s.count} pessoa(s)</td>
       </tr>
     `).join("");
     container.innerHTML = `
       <table class="tabela-geral">
-        <thead><tr><th>Data</th><th>Pessoas de férias</th></tr></thead>
+        <thead><tr><th>Período</th><th>Pessoas de férias</th></tr></thead>
         <tbody>${linhas}</tbody>
       </table>
     `;
   }
+  
 }
 
 // ---------- Backup ----------

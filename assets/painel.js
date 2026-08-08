@@ -2,7 +2,6 @@ let papelUsuario = null;      // 'gestor' ou 'funcionario'
 let equipeAtual = localStorage.getItem("equipeAtual") || "AHAB";
 let visaoAtual = "calendario"; // 'calendario' ou 'gantt'
 let calendar = null;
-let calendarDisponibilidade = null;
 let ganttInstance = null;
 let mapaDiasAtual = {}; // último mapa de dias (usado no toque/clique no celular)
 let editandoId = null;
@@ -104,15 +103,11 @@ function atualizarBotoesVisao() {
 
 function alternarVisao() {
   el("calendar").classList.add("hidden");
-  el("calendar-disponibilidade").classList.add("hidden");
   el("gantt-wrap").classList.add("hidden");
   el("tooltip-info").classList.add("hidden");
 
   if (visaoAtual === "calendario") {
     el("calendar").classList.remove("hidden");
-  } else if (visaoAtual === "disponibilidade") {
-    el("calendar-disponibilidade").classList.remove("hidden");
-    renderizarDisponibilidade();
   } else {
     el("gantt-wrap").classList.remove("hidden");
     renderizarGantt();
@@ -142,8 +137,7 @@ async function recarregarTudoVisual() {
   carregarFuncionariosNoSelect();
   const mapaDias = construirMapaDeDias(feriasFiltradas());
   renderizarCalendario(mapaDias);
-  if (visaoAtual === "disponibilidade") renderizarDisponibilidade();
-  if (visaoAtual === "gantt") renderizarGantt();
+  if (visaoAtual === "gantt") renderizarGantt();;
   if (papelUsuario === "gestor") renderizarListaPeriodos(feriasFiltradas());
   montarFiltrosVisaoGeral();
   renderizarVisaoGeral();
@@ -190,12 +184,24 @@ function construirMapaDeDias(listaFerias) {
 // ---------- Calendário ----------
 function renderizarCalendario(mapaDias) {
   mapaDiasAtual = mapaDias;
-  const eventos = Object.keys(mapaDias).map((data) => ({
-    start: data,
-    display: "background",
-    classNames: ["dia-ferias"],
-    extendedProps: { nomes: mapaDias[data] },
-  }));
+
+  const limite = equipeAtual === "AHAB" ? 5 : 1;
+  const eventos = [];
+  const inicio = new Date();
+  inicio.setDate(inicio.getDate() - 30);
+
+  for (let i = 0; i < 395; i++) {
+    const d = new Date(inicio);
+    d.setDate(d.getDate() + i);
+    const chave = d.toISOString().slice(0, 10);
+    const nomes = mapaDias[chave] || [];
+    eventos.push({
+      start: chave,
+      display: "background",
+      classNames: [nomes.length >= limite ? "dia-indisponivel" : "dia-disponivel"],
+      extendedProps: { nomes },
+    });
+  }
 
   const containerEl = el("calendar");
   if (calendar) calendar.destroy();
@@ -238,42 +244,7 @@ function mostrarTooltipToque(dataStr) {
 }
 
 // ---------- Mapa de disponibilidade (verde/vermelho) ----------
-function renderizarDisponibilidade() {
-  const mapaDias = construirMapaDeDias(feriasFiltradas());
-  const eventos = construirEventosDisponibilidade(mapaDias, equipeAtual);
 
-  const containerEl = el("calendar-disponibilidade");
-  if (calendarDisponibilidade) calendarDisponibilidade.destroy();
-
-  calendarDisponibilidade = new FullCalendar.Calendar(containerEl, {
-    locale: "pt-br",
-    height: "auto",
-    headerToolbar: { left: "prev,next today", center: "title", right: "" },
-    events: eventos,
-  });
-
-  calendarDisponibilidade.render();
-}
-
-function construirEventosDisponibilidade(mapaDias, equipe) {
-  const limite = equipe === "AHAB" ? 5 : 1; // 5+ na AHAB ou 1+ na ACESS = indisponível
-  const eventos = [];
-  const inicio = new Date();
-  inicio.setDate(inicio.getDate() - 30);
-
-  for (let i = 0; i < 395; i++) {
-    const d = new Date(inicio);
-    d.setDate(d.getDate() + i);
-    const chave = d.toISOString().slice(0, 10);
-    const count = (mapaDias[chave] || []).length;
-    eventos.push({
-      start: chave,
-      display: "background",
-      classNames: [count >= limite ? "dia-indisponivel" : "dia-disponivel"],
-    });
-  }
-  return eventos;
-}
 // ---------- Gráfico Gantt ----------
 function renderizarGantt() {
   const wrap = el("gantt-wrap");

@@ -159,7 +159,7 @@ h1, h2 {
 .fc { font-family: 'Inter', sans-serif; }
 .fc .dia-ferias { background: var(--accent-soft) !important; }
 .fc .dia-disponivel { background: #DCF5E5 !important; }
-.fc .dia-indisponivel { background: #FBDAD7 !important; }
+.fc .dia-indisponivel { background: #E5231B !important; }
 
 .tooltip-info {
   background: var(--accent-soft);

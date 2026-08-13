@@ -312,3 +312,32 @@ h1, h2 {
   .topbar { flex-direction: column; gap: 10px; align-items: flex-start; }
   .switch-option { padding: 8px 14px; font-size: 0.82rem; }
 }
+.config-equipe-bloco {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.config-equipe-bloco:last-of-type { border-bottom: none; }
+.config-equipe-bloco h3 { font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; margin-bottom: 10px; }
+.config-equipe-bloco label { display: block; font-size: 0.85rem; font-weight: 500; margin-top: 10px; margin-bottom: 4px; }
+.config-equipe-bloco input[type="number"] {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  width: 120px;
+}
+.config-checkbox { display: flex !important; align-items: center; gap: 8px; font-weight: 500 !important; }
+.config-checkbox input[type="checkbox"] { width: 16px; height: 16px; }
+.config-equipe-bloco button {
+  margin-top: 14px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.config-equipe-bloco button:hover { opacity: 0.92; }

@@ -7,11 +7,19 @@ let mapaDiasAtual = {}; // último mapa de dias (usado no toque/clique no celula
 let editandoId = null;
 let feriasCache = [];       // todas as férias, das duas equipes
 let funcionariosCache = []; // todos os funcionários, das duas equipes
+let configEquipes = {       // configurações por equipe (carregadas do banco)
+  AHAB: { limite: 5, mostrar_nomes: false },
+  ACESS: { limite: 1, mostrar_nomes: false },
+};
 
 const el = (id) => document.getElementById(id);
 
 function nomeCompleto(f) {
   return f.segundo_nome ? `${f.primeiro_nome} ${f.segundo_nome}` : f.primeiro_nome;
+}
+
+function podeVerNomes() {
+  return papelUsuario === "gestor" || (configEquipes[equipeAtual] && configEquipes[equipeAtual].mostrar_nomes);
 }
 
 // ---------- Inicialização ----------
@@ -52,6 +60,7 @@ function montarInterfacePorPapel() {
     el("lista-gestor").classList.remove("hidden");
     el("btn-backup").classList.remove("hidden");
     el("filtro-auditor-wrap").classList.remove("hidden");
+    el("config-gestor").classList.remove("hidden");
     el("legend-text").textContent = "Passe o mouse para ver quem está de férias";
   } else {
     badge.textContent = "Visualização";
@@ -130,6 +139,7 @@ async function carregarTudo() {
 
   if (!erroFerias) feriasCache = ferias;
 
+  await carregarConfiguracoes();
   await recarregarTudoVisual();
 }
 
@@ -185,7 +195,7 @@ function construirMapaDeDias(listaFerias) {
 function renderizarCalendario(mapaDias) {
   mapaDiasAtual = mapaDias;
 
-  const limite = equipeAtual === "AHAB" ? 5 : 1;
+  const limite = (configEquipes[equipeAtual] && configEquipes[equipeAtual].limite) || (equipeAtual === "AHAB" ? 5 : 1);
   const eventos = [];
   const inicio = new Date();
   inicio.setDate(inicio.getDate() - 30);
@@ -214,7 +224,7 @@ function renderizarCalendario(mapaDias) {
     eventDidMount: function (info) {
       const nomes = info.event.extendedProps.nomes || [];
       if (nomes.length === 0) return;
-      if (papelUsuario === "gestor") {
+      if (podeVerNomes()) {
         info.el.title = `${nomes.join(", ")} (${nomes.length})`;
       } else {
         info.el.title = `${nomes.length} pessoa(s) de férias`;
@@ -237,7 +247,7 @@ function mostrarTooltipToque(dataStr) {
     return;
   }
 
-  box.textContent = papelUsuario === "gestor"
+  box.textContent = podeVerNomes()
     ? `${formatarData(dataStr)}: ${nomes.join(", ")} (${nomes.length})`
     : `${formatarData(dataStr)}: ${nomes.length} pessoa(s) de férias`;
   box.classList.remove("hidden");
@@ -476,7 +486,7 @@ function renderizarVisaoGeral() {
     lista = lista.filter((f) => f.data_inicio.slice(0, 7) <= mesFiltro && f.data_fim.slice(0, 7) >= mesFiltro);
   }
 
-  if (papelUsuario === "gestor") {
+  if (podeVerNomes()) {
     if (lista.length === 0) {
       container.innerHTML = "<p class='vazio'>Nenhum período encontrado com esses filtros.</p>";
       return;
@@ -571,7 +581,60 @@ async function tentarBackupAutomatico() {
     console.warn("Backup automático não realizado:", e);
   }
 }
+// ---------- Configurações (limite e exibição de nomes por equipe) ----------
+async function carregarConfiguracoes() {
+  const { data, error } = await supabaseClient
+    .from("configuracoes_equipe")
+    .select("equipe, limite, mostrar_nomes");
 
+  if (!error && data) {
+    data.forEach((c) => {
+      configEquipes[c.equipe] = { limite: c.limite, mostrar_nomes: c.mostrar_nomes };
+    });
+  }
+
+  atualizarAvisoLimite();
+
+  if (papelUsuario === "gestor") {
+    ["AHAB", "ACESS"].forEach((eq) => {
+      if (el(`config-limite-${eq}`)) el(`config-limite-${eq}`).value = configEquipes[eq].limite;
+      if (el(`config-nomes-${eq}`)) el(`config-nomes-${eq}`).checked = configEquipes[eq].mostrar_nomes;
+    });
+  }
+}
+
+function atualizarAvisoLimite() {
+  const aviso = el("aviso-limite");
+  if (!aviso) return;
+  aviso.textContent = `⚠️ Atenção, permitido apenas ${configEquipes.AHAB.limite} auditores de férias ao mesmo tempo na AHAB e ${configEquipes.ACESS.limite} na ACESS`;
+}
+
+document.querySelectorAll(".btn-salvar-config").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const equipe = btn.dataset.equipe;
+    const limite = parseInt(el(`config-limite-${equipe}`).value, 10);
+    const mostrarNomes = el(`config-nomes-${equipe}`).checked;
+    const msg = el("config-msg");
+    msg.textContent = "";
+
+    const { error } = await supabaseClient
+      .from("configuracoes_equipe")
+      .update({ limite, mostrar_nomes: mostrarNomes })
+      .eq("equipe", equipe);
+
+    if (error) {
+      msg.textContent = "Erro ao salvar: " + error.message;
+      return;
+    }
+
+    configEquipes[equipe] = { limite, mostrar_nomes: mostrarNomes };
+    msg.textContent = `Configurações da ${equipe} salvas!`;
+    atualizarAvisoLimite();
+    await recarregarTudoVisual();
+  });
+});
+
+// ---------- Logout ----------
 // ---------- Logout ----------
 el("btn-logout").addEventListener("click", async () => {
   await supabaseClient.auth.signOut();

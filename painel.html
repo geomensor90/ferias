@@ -73,7 +73,7 @@
         </div>
       </div>
 
-      <p class="aviso-limite">⚠️ Atenção, permitido apenas 5 auditores de férias ao mesmo tempo na AHAB e 1 na ACESS</p>
+      <p class="aviso-limite" id="aviso-limite">⚠️ Atenção, permitido apenas 5 auditores de férias ao mesmo tempo na AHAB e 1 na ACESS</p>
 
       <div id="calendar"></div>
       <div id="tooltip-info" class="tooltip-info hidden"></div>
@@ -103,7 +103,36 @@
       <h2>Períodos agendados</h2>
       <div id="lista-periodos"></div>
     </section>
-    
+
+    <!-- Configurações (só gestor) -->
+    <section id="config-gestor" class="card hidden">
+      <h2>Configurações</h2>
+
+      <div class="config-equipe-bloco">
+        <h3>AHAB</h3>
+        <label for="config-limite-AHAB">Quantidade máxima de pessoas de férias ao mesmo tempo antes de ficar vermelho</label>
+        <input type="number" id="config-limite-AHAB" min="0" />
+        <label class="config-checkbox">
+          <input type="checkbox" id="config-nomes-AHAB" />
+          Mostrar nomes das pessoas de férias para o perfil funcionário
+        </label>
+        <button type="button" class="btn-salvar-config" data-equipe="AHAB">Salvar AHAB</button>
+      </div>
+
+      <div class="config-equipe-bloco">
+        <h3>ACESS</h3>
+        <label for="config-limite-ACESS">Quantidade máxima de pessoas de férias ao mesmo tempo antes de ficar vermelho</label>
+        <input type="number" id="config-limite-ACESS" min="0" />
+        <label class="config-checkbox">
+          <input type="checkbox" id="config-nomes-ACESS" />
+          Mostrar nomes das pessoas de férias para o perfil funcionário
+        </label>
+        <button type="button" class="btn-salvar-config" data-equipe="ACESS">Salvar ACESS</button>
+      </div>
+
+      <p id="config-msg" class="error-msg"></p>
+    </section>
+
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

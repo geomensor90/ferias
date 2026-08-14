@@ -400,3 +400,12 @@ h1, h2 {
   font-size: 0.9rem;
   width: 100%;
 }
+#btn-gerenciar-func {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+#btn-gerenciar-func:hover { opacity: 0.85; }

@@ -61,6 +61,7 @@ function montarInterfacePorPapel() {
     el("btn-backup").classList.remove("hidden");
     el("filtro-auditor-wrap").classList.remove("hidden");
     el("config-gestor").classList.remove("hidden");
+    el("btn-gerenciar-func").classList.remove("hidden");
     el("legend-text").textContent = "Passe o mouse para ver quem está de férias";
   } else {
     badge.textContent = "Visualização";
@@ -633,7 +634,126 @@ document.querySelectorAll(".btn-salvar-config").forEach((btn) => {
     await recarregarTudoVisual();
   });
 });
+// ---------- Gerenciar funcionários (modal) ----------
+el("btn-gerenciar-func")?.addEventListener("click", () => {
+  el("modal-equipe-nome").textContent = equipeAtual;
+  el("modal-funcionarios").classList.remove("hidden");
+  renderizarModalFuncionarios();
+});
 
+el("btn-fechar-modal")?.addEventListener("click", () => {
+  el("modal-funcionarios").classList.add("hidden");
+});
+
+el("form-novo-funcionario")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = el("modal-func-msg");
+  msg.textContent = "";
+
+  const primeiro = el("novo-func-primeiro").value.trim();
+  const segundo = el("novo-func-segundo").value.trim();
+
+  if (!primeiro) {
+    msg.textContent = "Digite ao menos o primeiro nome.";
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("funcionarios")
+    .insert({ primeiro_nome: primeiro, segundo_nome: segundo || null, equipe: equipeAtual });
+
+  if (error) {
+    msg.textContent = "Erro ao adicionar: " + error.message;
+    return;
+  }
+
+  el("form-novo-funcionario").reset();
+  await carregarTudo();
+  renderizarModalFuncionarios();
+});
+
+function renderizarModalFuncionarios() {
+  const container = el("lista-funcionarios-modal");
+  const lista = funcionariosFiltrados();
+
+  if (lista.length === 0) {
+    container.innerHTML = "<p class='vazio'>Nenhum funcionário cadastrado nesta equipe.</p>";
+    return;
+  }
+
+  container.innerHTML = lista.map((f) => `
+    <div class="periodo-linha" data-func-id="${f.id}">
+      <div class="modal-func-nome">
+        <span class="nome-exibicao">${nomeCompleto(f)}</span>
+        <input type="text" class="nome-edicao hidden" value="${nomeCompleto(f)}" />
+      </div>
+      <div class="periodo-acoes">
+        <button class="btn-link btn-editar-func" data-id="${f.id}">Editar</button>
+        <button class="btn-link btn-danger btn-excluir-func" data-id="${f.id}">Excluir</button>
+      </div>
+    </div>
+  `).join("");
+
+  container.querySelectorAll(".btn-editar-func").forEach((btn) => {
+    btn.addEventListener("click", () => alternarEdicaoFuncionario(btn.dataset.id));
+  });
+  container.querySelectorAll(".btn-excluir-func").forEach((btn) => {
+    btn.addEventListener("click", () => excluirFuncionario(btn.dataset.id));
+  });
+}
+
+function alternarEdicaoFuncionario(id) {
+  const linha = document.querySelector(`[data-func-id="${id}"]`);
+  const span = linha.querySelector(".nome-exibicao");
+  const input = linha.querySelector(".nome-edicao");
+  const btn = linha.querySelector(".btn-editar-func");
+
+  const editando = !input.classList.contains("hidden");
+
+  if (!editando) {
+    span.classList.add("hidden");
+    input.classList.remove("hidden");
+    btn.textContent = "Salvar";
+  } else {
+    salvarEdicaoFuncionario(id, input.value.trim());
+  }
+}
+
+async function salvarEdicaoFuncionario(id, novoNome) {
+  if (!novoNome) return;
+  const partes = novoNome.split(" ");
+  const primeiro = partes.shift();
+  const segundo = partes.length > 0 ? partes.join(" ") : null;
+
+  const { error } = await supabaseClient
+    .from("funcionarios")
+    .update({ primeiro_nome: primeiro, segundo_nome: segundo })
+    .eq("id", id);
+
+  if (error) {
+    alert("Erro ao salvar: " + error.message);
+    return;
+  }
+
+  await carregarTudo();
+  renderizarModalFuncionarios();
+}
+
+async function excluirFuncionario(id) {
+  const ok = confirm("Excluir este funcionário também apaga TODAS as férias marcadas dele. Continuar?");
+  if (!ok) return;
+
+  const { error } = await supabaseClient.from("funcionarios").delete().eq("id", id);
+  if (error) {
+    alert("Erro ao excluir: " + error.message);
+    return;
+  }
+
+  await carregarTudo();
+  renderizarModalFuncionarios();
+}
+
+// ---------- Logout ----------
 // ---------- Logout ----------
 // ---------- Logout ----------
 el("btn-logout").addEventListener("click", async () => {
